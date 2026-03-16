@@ -23,7 +23,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
 │   ├── api-server/         # Express API server
-│   └── mobile/             # Cuphead UI - Expo mobile app
+│   └── mobile-app/         # Cuphead UI - Expo mobile app
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -64,7 +64,7 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
 - Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
 
-### `artifacts/mobile` (`@workspace/mobile`)
+### `artifacts/mobile-app` (`@workspace/mobile-app`)
 
 Cuphead UI — Expo React Native app for hiding touch UI buttons when using a gamepad controller.
 
