@@ -46,9 +46,21 @@ jobs:
         working-directory: artifacts/mobile-app/android
         run: chmod +x gradlew
 
+      - name: Bundle JavaScript
+        working-directory: artifacts/mobile-app
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file node_modules/expo-router/entry.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res \
+            --reset-cache
+
       - name: Build APK
         working-directory: artifacts/mobile-app/android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease -x createBundleReleaseJsAndAssets --no-daemon
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m"
 
