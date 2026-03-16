@@ -1,7 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useRef, useState } from "react";
 import {
-  Dimensions,
   PanResponder,
   Pressable,
   StyleSheet,
@@ -102,6 +101,9 @@ export function ZoneCanvas({
       }
     : null;
 
+  const cw = canvasLayout.width;
+  const ch = canvasLayout.height;
+
   return (
     <View style={styles.container}>
       <View style={styles.toolbar}>
@@ -168,67 +170,73 @@ export function ZoneCanvas({
         }}
         {...panResponder.panHandlers}
       >
-        <View style={styles.gridOverlay}>
-          {[...Array(4)].map((_, i) => (
-            <View
-              key={`h${i}`}
-              style={[
-                styles.gridLine,
-                styles.gridLineH,
-                { top: `${(i + 1) * 20}%` as any },
-              ]}
-            />
-          ))}
-          {[...Array(4)].map((_, i) => (
-            <View
-              key={`v${i}`}
-              style={[
-                styles.gridLine,
-                styles.gridLineV,
-                { left: `${(i + 1) * 20}%` as any },
-              ]}
-            />
-          ))}
-        </View>
+        {cw > 0 && ch > 0 ? (
+          <View style={styles.gridOverlay}>
+            {[1, 2, 3, 4].map((i) => (
+              <View
+                key={`h${i}`}
+                style={[
+                  styles.gridLine,
+                  styles.gridLineH,
+                  { top: (i / 5) * ch },
+                ]}
+              />
+            ))}
+            {[1, 2, 3, 4].map((i) => (
+              <View
+                key={`v${i}`}
+                style={[
+                  styles.gridLine,
+                  styles.gridLineV,
+                  { left: (i / 5) * cw },
+                ]}
+              />
+            ))}
+          </View>
+        ) : null}
 
-        {zones.map((zone) => (
-          <Pressable
-            key={zone.id}
-            onPress={() => {
-              if (mode === "select") {
-                setSelectedZone(selectedZone === zone.id ? null : zone.id);
-              }
-            }}
-            style={[
-              styles.zone,
-              {
-                left: `${zone.x * 100}%` as any,
-                top: `${zone.y * 100}%` as any,
-                width: `${zone.width * 100}%` as any,
-                height: `${zone.height * 100}%` as any,
-                backgroundColor:
-                  overlayColor +
-                  Math.round(Math.max(0.1, opacity) * 255)
-                    .toString(16)
-                    .padStart(2, "0"),
-                borderColor:
-                  selectedZone === zone.id
-                    ? Colors.light.danger
-                    : Colors.light.tint,
-                borderWidth: selectedZone === zone.id ? 2 : 1,
-              },
-            ]}
-          >
-            {selectedZone === zone.id ? (
+        {cw > 0 && ch > 0
+          ? zones.map((zone) => (
               <Pressable
-                onPress={() => deleteZone(zone.id)}
-                style={styles.deleteBtn}
+                key={zone.id}
+                onPress={() => {
+                  if (mode === "select") {
+                    setSelectedZone(
+                      selectedZone === zone.id ? null : zone.id,
+                    );
+                  }
+                }}
+                style={[
+                  styles.zone,
+                  {
+                    left: zone.x * cw,
+                    top: zone.y * ch,
+                    width: zone.width * cw,
+                    height: zone.height * ch,
+                    backgroundColor:
+                      overlayColor +
+                      Math.round(Math.max(0.1, opacity) * 255)
+                        .toString(16)
+                        .padStart(2, "0"),
+                    borderColor:
+                      selectedZone === zone.id
+                        ? Colors.light.danger
+                        : Colors.light.tint,
+                    borderWidth: selectedZone === zone.id ? 2 : 1,
+                  },
+                ]}
               >
-                <Feather name="x" size={14} color="#FFFFFF" />
+                {selectedZone === zone.id ? (
+                  <Pressable
+                    onPress={() => deleteZone(zone.id)}
+                    style={styles.deleteBtn}
+                  >
+                    <Feather name="x" size={14} color="#FFFFFF" />
+                  </Pressable>
+                ) : null}
               </Pressable>
-            ) : null}
-          </Pressable>
-        ))}
+            ))
+          : null}
 
         {drawingRect ? (
           <View

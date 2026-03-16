@@ -32,10 +32,10 @@ export function SliderRow({
     ? formatValue(value)
     : `${Math.round(value * 100)}%`;
 
-  const trackRef = useRef<View>(null);
   const [trackWidth, setTrackWidth] = useState(0);
 
-  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const clamp = (v: number, lo: number, hi: number) =>
+    Math.min(hi, Math.max(lo, v));
 
   const panResponder = useRef(
     PanResponder.create({
@@ -59,6 +59,8 @@ export function SliderRow({
   ).current;
 
   const fraction = max > min ? (value - min) / (max - min) : 0;
+  const fillWidth = trackWidth * fraction;
+  const thumbLeft = fillWidth - 11;
 
   return (
     <View style={styles.container}>
@@ -70,19 +72,17 @@ export function SliderRow({
         <Text style={styles.value}>{displayValue}</Text>
       </View>
       <View
-        ref={trackRef}
         style={styles.track}
         onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
         {...panResponder.panHandlers}
       >
         <View style={styles.trackBg} />
-        <View style={[styles.trackFill, { width: `${fraction * 100}%` as any }]} />
-        <View
-          style={[
-            styles.thumb,
-            { left: `${fraction * 100}%` as any },
-          ]}
-        />
+        {trackWidth > 0 ? (
+          <>
+            <View style={[styles.trackFill, { width: fillWidth }]} />
+            <View style={[styles.thumb, { left: Math.max(0, thumbLeft) }]} />
+          </>
+        ) : null}
       </View>
     </View>
   );
@@ -150,13 +150,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     backgroundColor: Colors.light.tint,
-    marginLeft: -11,
     borderWidth: 3,
     borderColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
   },
 });

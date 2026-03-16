@@ -16,6 +16,10 @@ import { StatusCard } from "@/components/StatusCard";
 import { ToggleRow } from "@/components/ToggleRow";
 import Colors from "@/constants/colors";
 import { useOverlay } from "@/context/OverlayContext";
+import {
+  hasOverlayPermission,
+  requestOverlayPermission,
+} from "@/modules/gamepad-overlay/src";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -29,6 +33,7 @@ export default function HomeScreen() {
     toggleAutoDetect,
     simulateGamepad,
     getActiveProfile,
+    nativeAvailable,
   } = useOverlay();
 
   const activeProfile = getActiveProfile();
@@ -36,6 +41,10 @@ export default function HomeScreen() {
   const webBottomInset = Platform.OS === "web" ? 34 : 0;
 
   const handleToggleOverlay = () => {
+    if (nativeAvailable && !hasOverlayPermission()) {
+      requestOverlayPermission();
+      return;
+    }
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -209,8 +218,9 @@ export default function HomeScreen() {
             color={Colors.light.tint}
           />
           <Text style={styles.infoText}>
-            Toca el boton "Mando" para simular la conexion de un gamepad. En un
-            dispositivo real, la deteccion es automatica.
+            {nativeAvailable
+              ? "Modulo nativo activo. La deteccion de gamepad y el overlay sobre apps funciona automaticamente."
+              : "Toca el boton \"Mando\" para simular la conexion de un gamepad. En un dispositivo con build nativo, la deteccion es automatica."}
           </Text>
         </View>
       </ScrollView>

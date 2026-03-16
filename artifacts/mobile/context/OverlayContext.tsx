@@ -6,7 +6,16 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { Dimensions } from "react-native";
+
+import {
+  addGamepadConnectedListener,
+  addGamepadDisconnectedListener,
+  isGamepadConnected as nativeIsGamepadConnected,
+  isNativeAvailable,
+  startOverlayService,
+  stopOverlayService,
+  updateOverlay,
+} from "@/modules/gamepad-overlay/src";
 
 export interface OverlayZone {
   id: string;
@@ -45,6 +54,7 @@ interface OverlayContextType extends OverlayState {
   simulateGamepad: (connected: boolean) => void;
   setOverlayColor: (color: string) => void;
   getActiveProfile: () => GameProfile | undefined;
+  nativeAvailable: boolean;
 }
 
 const STORAGE_KEY = "@gamepad_overlay_state";
@@ -75,11 +85,81 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
         try {
           const parsed = JSON.parse(raw);
           setState((prev) => ({ ...prev, ...parsed, gamepadConnected: false }));
-        } catch {}
+        } catch {
+          /* corrupted storage, use defaults */
+        }
       }
       setLoaded(true);
     });
   }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    if (isNativeAvailable) {
+      const connected = nativeIsGamepadConnected();
+      if (connected) {
+        setState((prev) => {
+          const next = { ...prev, gamepadConnected: true };
+          if (prev.autoDetectGamepad) {
+            next.overlayEnabled = true;
+          }
+          return next;
+        });
+      }
+    }
+  }, [loaded]);
+
+  useEffect(() => {
+    if (!isNativeAvailable) return;
+
+    const connSub = addGamepadConnectedListener((event) => {
+      setState((prev) => {
+        const next = { ...prev, gamepadConnected: true };
+        if (prev.autoDetectGamepad) {
+          next.overlayEnabled = true;
+        }
+        return next;
+      });
+    });
+
+    const disconnSub = addGamepadDisconnectedListener((event) => {
+      setState((prev) => {
+        const next = { ...prev, gamepadConnected: false };
+        if (prev.autoDetectGamepad) {
+          next.overlayEnabled = false;
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      connSub.remove();
+      disconnSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!loaded || !isNativeAvailable) return;
+
+    const activeProfile = state.profiles.find(
+      (p) => p.id === state.activeProfileId,
+    );
+    const zones = activeProfile?.zones ?? [];
+
+    if (state.overlayEnabled && zones.length > 0) {
+      startOverlayService(zones, state.overlayColor, state.opacity);
+    } else {
+      stopOverlayService();
+    }
+  }, [
+    loaded,
+    state.overlayEnabled,
+    state.activeProfileId,
+    state.overlayColor,
+    state.opacity,
+    state.profiles,
+  ]);
 
   const persist = useCallback((newState: OverlayState) => {
     const { gamepadConnected, ...toSave } = newState;
@@ -119,7 +199,8 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
       update((prev) => ({
         ...prev,
         profiles: prev.profiles.filter((p) => p.id !== id),
-        activeProfileId: prev.activeProfileId === id ? null : prev.activeProfileId,
+        activeProfileId:
+          prev.activeProfileId === id ? null : prev.activeProfileId,
       }));
     },
     [update],
@@ -129,7 +210,9 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     (id: string, name: string) => {
       update((prev) => ({
         ...prev,
-        profiles: prev.profiles.map((p) => (p.id === id ? { ...p, name } : p)),
+        profiles: prev.profiles.map((p) =>
+          p.id === id ? { ...p, name } : p,
+        ),
       }));
     },
     [update],
@@ -172,18 +255,15 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     }));
   }, [update]);
 
-  const simulateGamepad = useCallback(
-    (connected: boolean) => {
-      setState((prev) => {
-        const next = { ...prev, gamepadConnected: connected };
-        if (prev.autoDetectGamepad) {
-          next.overlayEnabled = connected;
-        }
-        return next;
-      });
-    },
-    [],
-  );
+  const simulateGamepad = useCallback((connected: boolean) => {
+    setState((prev) => {
+      const next = { ...prev, gamepadConnected: connected };
+      if (prev.autoDetectGamepad) {
+        next.overlayEnabled = connected;
+      }
+      return next;
+    });
+  }, []);
 
   const setOverlayColor = useCallback(
     (color: string) => {
@@ -213,6 +293,7 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
         simulateGamepad,
         setOverlayColor,
         getActiveProfile,
+        nativeAvailable: isNativeAvailable,
       }}
     >
       {children}
