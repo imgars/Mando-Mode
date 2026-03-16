@@ -1,0 +1,77 @@
+name: Build APK & Publish Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: artifacts/mobile-app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build APK (remote) and download artifact
+        run: |
+          eas build --platform android --profile preview --non-interactive --json > build-result.json
+          BUILD_URL=$(node -p "JSON.parse(require('fs').readFileSync('build-result.json','utf8'))[0].artifacts.buildUrl")
+          echo "Downloading APK from: $BUILD_URL"
+          curl -L -o cuphead-ui.apk "$BUILD_URL"
+
+      - name: Verify APK exists
+        run: |
+          if [ ! -f cuphead-ui.apk ]; then
+            echo "ERROR: APK file not found after build"
+            exit 1
+          fi
+          ls -lh cuphead-ui.apk
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Cuphead UI ${{ steps.version.outputs.version }}
+          body: |
+            **Cuphead UI** v${{ steps.version.outputs.version }}
+
+            Descarga el archivo `.apk` e instálalo en tu dispositivo Android.
+
+            ### Cómo instalar
+            1. Descarga el archivo `cuphead-ui.apk`
+            2. En Android: Ajustes → Seguridad → Fuentes desconocidas (activar)
+            3. Abre el archivo descargado e instala
+          files: artifacts/mobile-app/cuphead-ui.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

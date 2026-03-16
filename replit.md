@@ -115,6 +115,34 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/download-page` (`@workspace/download-page`)
+
+Cuphead UI download page — Vite + React single-page app that fetches the latest APK from GitHub Releases (`imgars/Mando-Mode`) and provides a download button.
+
+- Fetches latest release from GitHub API (`https://api.github.com/repos/imgars/Mando-Mode/releases/latest`)
+- Shows APK version, size, and download link when a release exists
+- Shows "no disponible" message when no release has been published yet
+
+## GitHub Actions — APK Build & Release
+
+A GitHub Actions workflow (`.github/workflows/build-apk.yml`) automatically builds the APK and publishes it as a GitHub Release.
+
+### How it works
+1. On every push to `master`, the workflow triggers
+2. EAS CLI builds the APK using the `preview` profile (configured in `artifacts/mobile-app/eas.json`)
+3. The resulting `.apk` is attached to a new GitHub Release
+
+### Required GitHub Secrets
+- **`EXPO_TOKEN`** — An Expo access token for authenticating with EAS Build. Generate one at https://expo.dev/accounts/[your-username]/settings/access-tokens
+- **`GITHUB_TOKEN`** — Automatically provided by GitHub Actions (no setup needed)
+
+### First-time setup
+1. Create an Expo account at https://expo.dev
+2. Update `artifacts/mobile-app/app.json` → `expo.owner` with your Expo username
+3. Generate an access token at https://expo.dev/accounts/[your-username]/settings/access-tokens
+4. Add the token as a secret in GitHub: Repository → Settings → Secrets and variables → Actions → New repository secret → Name: `EXPO_TOKEN`, Value: your token
+5. Push to `master` — the workflow will build and publish the APK automatically
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

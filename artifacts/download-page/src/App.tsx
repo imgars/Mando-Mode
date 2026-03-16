@@ -1,27 +1,58 @@
 import { useEffect, useState } from "react";
 
-const API_BASE = "";
+const GITHUB_REPO = "imgars/Mando-Mode";
 
-interface ApkInfo {
+interface ReleaseInfo {
   available: boolean;
-  filename?: string;
+  downloadUrl?: string;
+  version?: string;
   sizeMB?: string;
 }
 
+async function fetchLatestRelease(): Promise<ReleaseInfo> {
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+  );
+
+  if (!res.ok) {
+    return { available: false };
+  }
+
+  const data = await res.json();
+  const apkAsset = data.assets?.find(
+    (a: { name: string }) =>
+      a.name.endsWith(".apk"),
+  );
+
+  if (!apkAsset) {
+    return { available: false };
+  }
+
+  const sizeMB = (apkAsset.size / (1024 * 1024)).toFixed(1);
+
+  return {
+    available: true,
+    downloadUrl: apkAsset.browser_download_url,
+    version: data.tag_name,
+    sizeMB,
+  };
+}
+
 export default function App() {
-  const [info, setInfo] = useState<ApkInfo | null>(null);
+  const [info, setInfo] = useState<ReleaseInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/apk/info`)
-      .then((r) => r.json())
-      .then((data) => setInfo(data))
+    fetchLatestRelease()
+      .then(setInfo)
       .catch(() => setInfo({ available: false }))
       .finally(() => setLoading(false));
   }, []);
 
   const handleDownload = () => {
-    window.location.href = `${API_BASE}/api/apk/download`;
+    if (info?.downloadUrl) {
+      window.open(info.downloadUrl, "_blank", "noopener,noreferrer");
+    }
   };
 
   return (
@@ -68,6 +99,11 @@ export default function App() {
               <span style={{ color: "#22c55e", fontWeight: 600 }}>
                 APK disponible
               </span>
+              {info.version && (
+                <span style={{ color: "#888", marginLeft: 8 }}>
+                  {info.version}
+                </span>
+              )}
               {info.sizeMB && (
                 <span style={{ color: "#888", marginLeft: 8 }}>
                   ({info.sizeMB} MB)
@@ -93,7 +129,9 @@ export default function App() {
         ) : (
           <div style={styles.statusBox}>
             <span style={styles.dotGray} />
-            <span style={{ color: "#888" }}>APK no disponible aún</span>
+            <span style={{ color: "#888" }}>
+              APK no disponible aún — se publicará cuando se genere el primer Release en GitHub
+            </span>
           </div>
         )}
       </div>
