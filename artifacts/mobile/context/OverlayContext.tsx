@@ -148,7 +148,14 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     const zones = activeProfile?.zones ?? [];
 
     if (state.overlayEnabled && zones.length > 0) {
-      startOverlayService(zones, state.overlayColor, state.opacity);
+      const started = startOverlayService(
+        zones,
+        state.overlayColor,
+        state.opacity,
+      );
+      if (!started) {
+        setState((prev) => ({ ...prev, overlayEnabled: false }));
+      }
     } else {
       stopOverlayService();
     }
