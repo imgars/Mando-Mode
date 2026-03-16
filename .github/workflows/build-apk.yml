@@ -26,38 +26,46 @@ jobs:
         with:
           version: 9
 
-      - name: Setup EAS CLI
-        uses: expo/expo-github-action@v8
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build APK and download artifact
+      - name: Generate Android project
         working-directory: artifacts/mobile-app
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Make gradlew executable
+        working-directory: artifacts/mobile-app/android
+        run: chmod +x gradlew
+
+      - name: Build APK
+        working-directory: artifacts/mobile-app/android
+        run: ./gradlew assembleRelease --no-daemon
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m"
+
+      - name: Find APK
+        id: find_apk
         run: |
-          eas build --platform android --profile preview --non-interactive --wait --json > build-result.json
-          cat build-result.json
-          BUILD_URL=$(node -e "
-            const data = JSON.parse(require('fs').readFileSync('build-result.json','utf8'));
-            const build = Array.isArray(data) ? data[0] : data;
-            const url = build?.artifacts?.buildUrl;
-            if (!url) { console.error('No buildUrl found in:', JSON.stringify(build?.artifacts)); process.exit(1); }
-            process.stdout.write(url);
-          ")
-          echo "Downloading APK from: $BUILD_URL"
-          curl -L -o cuphead-ui.apk "$BUILD_URL"
+          APK_PATH=$(find artifacts/mobile-app/android/app/build/outputs/apk -name "*.apk" | head -1)
+          echo "apk_path=${APK_PATH}" >> $GITHUB_OUTPUT
+          echo "Found APK: $APK_PATH"
 
       - name: Verify APK exists
-        working-directory: artifacts/mobile-app
         run: |
-          if [ ! -f cuphead-ui.apk ]; then
-            echo "ERROR: APK file not found after build"
+          if [ ! -f "${{ steps.find_apk.outputs.apk_path }}" ]; then
+            echo "ERROR: APK file not found"
             exit 1
           fi
-          ls -lh cuphead-ui.apk
+          ls -lh "${{ steps.find_apk.outputs.apk_path }}"
 
       - name: Get version
         id: version
@@ -67,6 +75,9 @@ jobs:
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Copy APK with final name
+        run: cp "${{ steps.find_apk.outputs.apk_path }}" cuphead-ui.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -82,7 +93,7 @@ jobs:
             1. Descarga el archivo `cuphead-ui.apk`
             2. En Android: Ajustes → Seguridad → Fuentes desconocidas (activar)
             3. Abre el archivo descargado e instala
-          files: artifacts/mobile-app/cuphead-ui.apk
+          files: cuphead-ui.apk
           draft: false
           prerelease: false
         env:
