@@ -219,7 +219,7 @@ export default function HomeScreen() {
           />
           <Text style={styles.infoText}>
             {nativeAvailable
-              ? "Modulo nativo activo. La deteccion de gamepad y el overlay sobre apps funciona automaticamente."
+              ? "Modulo nativo activo. La deteccion de gamepad y el overlay funcionan mientras la app esta en segundo plano. La app debe estar ejecutandose para detectar conexiones."
               : "Toca el boton \"Mando\" para simular la conexion de un gamepad. En un dispositivo con build nativo, la deteccion es automatica."}
           </Text>
         </View>
