@@ -19,16 +19,20 @@ function withOverlayPermission(config) {
       });
     }
 
-    const hasForegroundService = manifest["uses-permission"].some(
-      (perm) =>
-        perm.$?.["android:name"] ===
-        "android.permission.FOREGROUND_SERVICE",
-    );
+    const requiredPermissions = [
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+    ];
 
-    if (!hasForegroundService) {
-      manifest["uses-permission"].push({
-        $: { "android:name": "android.permission.FOREGROUND_SERVICE" },
-      });
+    for (const perm of requiredPermissions) {
+      const exists = manifest["uses-permission"].some(
+        (p) => p.$?.["android:name"] === perm,
+      );
+      if (!exists) {
+        manifest["uses-permission"].push({
+          $: { "android:name": perm },
+        });
+      }
     }
 
     return config;

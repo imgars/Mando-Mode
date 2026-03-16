@@ -1,7 +1,6 @@
-import { EventEmitter, NativeModule } from "expo-modules-core";
 import { Platform } from "react-native";
 
-interface GamepadOverlayModuleType extends NativeModule {
+interface GamepadOverlayNativeModule {
   hasOverlayPermission(): boolean;
   requestOverlayPermission(): void;
   isGamepadConnected(): boolean;
@@ -16,14 +15,16 @@ interface GamepadOverlayModuleType extends NativeModule {
     color: string,
     opacity: number,
   ): void;
+  addListener(eventName: string): void;
+  removeListeners(count: number): void;
 }
 
-let nativeModule: GamepadOverlayModuleType | null = null;
+let nativeModule: GamepadOverlayNativeModule | null = null;
 
 try {
   if (Platform.OS === "android") {
-    const { requireNativeModule } = require("expo-modules-core");
-    nativeModule = requireNativeModule("GamepadOverlay");
+    const ExpoModulesCore = require("expo-modules-core");
+    nativeModule = ExpoModulesCore.requireNativeModule("GamepadOverlay");
   }
 } catch {
   nativeModule = null;
@@ -31,9 +32,22 @@ try {
 
 const isNativeAvailable = nativeModule !== null;
 
-let emitter: EventEmitter | null = null;
-if (nativeModule) {
-  emitter = new EventEmitter(nativeModule);
+type Subscription = { remove: () => void };
+
+function createEventSubscription(
+  eventName: string,
+  callback: (event: GamepadEvent) => void,
+): Subscription {
+  if (!nativeModule) {
+    return { remove: () => {} };
+  }
+  try {
+    const ExpoModulesCore = require("expo-modules-core");
+    const emitter = new ExpoModulesCore.EventEmitter(nativeModule);
+    return emitter.addListener(eventName, callback);
+  } catch {
+    return { remove: () => {} };
+  }
 }
 
 export function hasOverlayPermission(): boolean {
@@ -81,22 +95,14 @@ export type GamepadEvent = {
 
 export function addGamepadConnectedListener(
   callback: (event: GamepadEvent) => void,
-): { remove: () => void } {
-  if (!emitter) {
-    return { remove: () => {} };
-  }
-  const subscription = emitter.addListener("onGamepadConnected", callback);
-  return subscription;
+): Subscription {
+  return createEventSubscription("onGamepadConnected", callback);
 }
 
 export function addGamepadDisconnectedListener(
   callback: (event: GamepadEvent) => void,
-): { remove: () => void } {
-  if (!emitter) {
-    return { remove: () => {} };
-  }
-  const subscription = emitter.addListener("onGamepadDisconnected", callback);
-  return subscription;
+): Subscription {
+  return createEventSubscription("onGamepadDisconnected", callback);
 }
 
 export { isNativeAvailable };
