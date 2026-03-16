@@ -40,7 +40,13 @@ jobs:
         run: |
           eas build --platform android --profile preview --non-interactive --wait --json > build-result.json
           cat build-result.json
-          BUILD_URL=$(node -p "JSON.parse(require('fs').readFileSync('build-result.json','utf8'))[0].artifacts.buildUrl")
+          BUILD_URL=$(node -e "
+            const data = JSON.parse(require('fs').readFileSync('build-result.json','utf8'));
+            const build = Array.isArray(data) ? data[0] : data;
+            const url = build?.artifacts?.buildUrl;
+            if (!url) { console.error('No buildUrl found in:', JSON.stringify(build?.artifacts)); process.exit(1); }
+            process.stdout.write(url);
+          ")
           echo "Downloading APK from: $BUILD_URL"
           curl -L -o cuphead-ui.apk "$BUILD_URL"
 
