@@ -23,7 +23,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
 │   ├── api-server/         # Express API server
-│   └── mobile/             # GamePad Overlay - Expo mobile app
+│   └── mobile/             # Cuphead UI - Expo mobile app
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -66,19 +66,25 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 
 ### `artifacts/mobile` (`@workspace/mobile`)
 
-GamePad Overlay — Expo React Native app for hiding touch UI buttons when using a gamepad controller.
+Cuphead UI — Expo React Native app for hiding touch UI buttons when using a gamepad controller.
 
+- **Android package**: `com.cupheadui.app`
 - **Screens**: Home (status/controls), Zone Editor (draw overlay zones), Profiles (game profiles), Settings (opacity/color)
 - **State**: React Context + AsyncStorage for persistent game profiles and settings
+- **Native modules** (Android):
+  - `OverlayService.kt` — Full-screen overlay service using SYSTEM_ALERT_WINDOW
+  - `FloatingBubbleService.kt` — Draggable floating bubble that appears when app is backgrounded; tap to reopen, × to dismiss
+  - `GamepadOverlayModule.kt` — Expo module exposing overlay + bubble + gamepad APIs to JS
 - **Key files**:
   - `app/index.tsx` — Home screen with overlay toggle, gamepad status, quick actions
   - `app/editor.tsx` — Visual zone editor with draw/select modes
   - `app/profiles.tsx` — Game profile CRUD management
   - `app/settings.tsx` — Overlay opacity, color, auto-detection settings
-  - `context/OverlayContext.tsx` — Global state with AsyncStorage persistence
+  - `context/OverlayContext.tsx` — Global state with AsyncStorage persistence, AppState-driven bubble lifecycle
   - `components/ZoneCanvas.tsx` — PanResponder-based drawing canvas for overlay zones
   - `components/StatusCard.tsx`, `ToggleRow.tsx`, `SliderRow.tsx`, `ProfileCard.tsx` — Reusable UI components
-- **Note**: The actual Android overlay (SYSTEM_ALERT_WINDOW) requires a development build with native modules. The Expo Go version provides full configuration UI and simulated gamepad detection.
+- **EAS Build**: `eas.json` configured with `preview` profile for APK generation. Run `eas build --platform android --profile preview` (requires EAS CLI + Expo account).
+- **Note**: The actual Android overlay and floating bubble require a development build with native modules. The Expo Go version provides full configuration UI and simulated gamepad detection.
 
 ### `lib/db` (`@workspace/db`)
 

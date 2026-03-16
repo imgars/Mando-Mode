@@ -4,15 +4,19 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 
 import {
   addGamepadConnectedListener,
   addGamepadDisconnectedListener,
   isGamepadConnected as nativeIsGamepadConnected,
   isNativeAvailable,
+  startBubbleService,
   startOverlayService,
+  stopBubbleService,
   stopOverlayService,
   updateOverlay,
 } from "@/modules/gamepad-overlay/src";
@@ -167,6 +171,31 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
     state.opacity,
     state.profiles,
   ]);
+
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    if (!isNativeAvailable) return;
+
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (
+        appStateRef.current === "active" &&
+        (nextAppState === "background" || nextAppState === "inactive")
+      ) {
+        startBubbleService();
+      } else if (
+        nextAppState === "active" &&
+        (appStateRef.current === "background" || appStateRef.current === "inactive")
+      ) {
+        stopBubbleService();
+      }
+      appStateRef.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const persist = useCallback((newState: OverlayState) => {
     const { gamepadConnected, ...toSave } = newState;

@@ -156,7 +156,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.aboutSection}>
-          <Text style={styles.aboutTitle}>GamePad Overlay v1.0</Text>
+          <Text style={styles.aboutTitle}>Cuphead UI v1.0</Text>
           <Text style={styles.aboutText}>
             Oculta los botones tactiles de tus juegos cuando usas un mando.
             Configura zonas personalizadas para cada juego.

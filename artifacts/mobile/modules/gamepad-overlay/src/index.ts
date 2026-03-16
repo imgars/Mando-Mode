@@ -15,6 +15,8 @@ interface GamepadOverlayNativeModule {
     color: string,
     opacity: number,
   ): void;
+  startBubbleService(): boolean;
+  stopBubbleService(): void;
   addListener(eventName: string): void;
   removeListeners(count: number): void;
 }
@@ -86,6 +88,16 @@ export function updateOverlay(
 ): void {
   if (!isNativeAvailable) return;
   nativeModule!.updateOverlay(zones, color, opacity);
+}
+
+export function startBubbleService(): boolean {
+  if (!isNativeAvailable) return false;
+  return nativeModule!.startBubbleService();
+}
+
+export function stopBubbleService(): void {
+  if (!isNativeAvailable) return;
+  nativeModule!.stopBubbleService();
 }
 
 export type GamepadEvent = {

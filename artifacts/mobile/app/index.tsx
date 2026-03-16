@@ -77,7 +77,7 @@ export default function HomeScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.appTitle}>GamePad Overlay</Text>
+            <Text style={styles.appTitle}>Cuphead UI</Text>
             <Text style={styles.appSubtitle}>Modo Mando para tus juegos</Text>
           </View>
           <Pressable
